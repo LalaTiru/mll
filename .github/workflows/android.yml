@@ -1,0 +1,64 @@
+name: Android Tests
+
+on: push
+
+jobs:
+  build:
+    name: Gradle build pass
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout repo
+        with:
+          fetch-depth: 1
+      - name: set up JDK 1.11
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: 11
+      - name: Build with Gradle
+        run: ./gradlew assembleNormalDebug
+
+  junit:
+    name: Unit tests
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout repo
+        with:
+          fetch-depth: 1
+
+      - name: Run Unit tests
+        run: ./gradlew testNormalDebugUnitTest
+
+      - name: Bundle unit tests results artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: unit-tests-results
+          path: app/build/reports/tests/testNormalDebugUnitTest
+
+  tests:
+    name: Instrumentation tests
+    needs: [build]
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: Set up JDK 1.11
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: 11
+      - name: Run all instrumented Tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 28
+          target: google_apis
+          disable-animations: true
+          script: ./gradlew connectedNormalDebugAndroidTest
